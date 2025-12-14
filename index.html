@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACG 资源数据库 V4.2 (修复版)</title>
+    <title>ACG 资源数据库 V4.4 (云端AI版)</title>
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card-bg: #ffffff; --border: #e2e8f0; --text: #1e293b; --sub-text: #64748b; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); max-width: 1200px; margin: 0 auto; padding: 15px; color: var(--text); }
         
-        /* 顶部配置区 */
-        .config-box { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        /* 顶部配置区 (极简版) */
+        .config-box { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
-        input { flex: 1; min-width: 120px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; transition: 0.2s; font-size: 0.9em; }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
         
         /* 按钮通用样式 */
         .btn { border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; }
@@ -24,7 +22,6 @@
         .btn-info { background: #e0f2fe; color: #0284c7; }
         .btn-ghost { background: #f1f5f9; color: #475569; }
         .btn-ghost.active { background: #cbd5e1; color: #0f172a; font-weight: bold; }
-        /* 演示按钮特效 */
         .btn-demo { background: #fff; border: 1px dashed var(--primary); color: var(--primary); }
         .btn-demo:hover { background: #eff6ff; }
 
@@ -37,7 +34,8 @@
         .date-pill.active::after { content: ' ✓'; font-size: 0.8em; opacity: 0.8; }
 
         /* 输入区 */
-        textarea { width: 100%; height: 100px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; resize: vertical; font-family: monospace; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
+        textarea { width: 100%; height: 100px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; resize: vertical; font-family: monospace; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; line-height: 1.5; outline: none; transition: 0.2s; }
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
         
         /* 布局适配 */
         .columns-wrapper { display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap; }
@@ -74,36 +72,30 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-        <span style="font-weight:bold; color:#1e293b;">ACG 资源整理助手</span>
-        <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8em;" onclick="alert('【使用说明】\n1. 复制文本：将包含车牌、作者名、书名的混乱文字复制。\n2. 粘贴提取：放入输入框点击提取，自动识别并生成链接。\n3. 自动保存：数据保存在本地，下次打开还在。\n4. 智能过滤：默认只展示今天提取的新内容，旧内容会自动折叠。')">❓ 如何使用</button>
+        <span style="font-weight:bold; color:#1e293b; font-size: 1.1em;">ACG 资源整理助手</span>
+        <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8em;" onclick="alert('【使用说明】\n1. 复制文本：将包含车牌、作者名、书名的混乱文字复制进来。\n2. 点击提取：程序会自动识别并分类。\n3. 数据自动保存在本地浏览器中，不会上传。')">❓ 说明</button>
     </div>
 
     <div class="config-box">
-        <div class="row">
-            <span style="font-weight:bold; font-size:0.9em;">⚙️ API设置:</span>
-            <input type="password" id="apiKey" placeholder="API Key (可选)">
-            <input type="text" id="apiBase" value="https://api.deepseek.com" placeholder="Base URL">
-            <input type="hidden" id="modelName" value="deepseek-chat">
-        </div>
-        
-        <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 10px;">
-            <div style="font-weight:bold; font-size:0.9em; margin-right:auto;">💾 数据备份:</div>
-            <button class="btn btn-success" onclick="exportData()">📤 导出</button>
-            <button class="btn btn-info" onclick="document.getElementById('fileInput').click()">📥 导入</button>
+        <div class="row" style="margin-bottom:0; justify-content: space-between;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <span style="font-size:0.9em; font-weight:bold;">💾 管理:</span>
+                <button class="btn btn-success" onclick="exportData()">📤 导出</button>
+                <button class="btn btn-info" onclick="document.getElementById('fileInput').click()">📥 导入</button>
+                <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importData(this)">
+            </div>
             <button class="btn btn-danger" onclick="clearHistory()">🗑️ 清空</button>
-            <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importData(this)">
         </div>
     </div>
 
     <div style="text-align:right; margin-bottom:5px;">
-        <button class="btn btn-demo" onclick="fillDemoText()">🎲 填入试用文本 (点击试试)</button>
+        <button class="btn btn-demo" onclick="fillDemoText()">🎲 填入试用文本</button>
     </div>
 
-    <textarea id="rawText" placeholder="在此粘贴混乱文本...
-👇 支持识别：
-1. 神秘代码 (如 123456)
-2. 作者/书名 (如 调四季 / 某某本子)
-3. 搜索指令 (如 redgif搜neko)"></textarea>
+    <textarea id="rawText" placeholder="在此粘贴文本...
+👇 内置 AI 智能识别：
+无需任何设置，直接粘贴混乱文本，
+自动识别 [车牌号] [作者] [书名] [搜索指令]"></textarea>
 
     <div class="row" style="margin-bottom: 15px;">
         <button class="btn btn-primary" id="processBtn" onclick="runProcessor()" style="flex:1;">
@@ -149,22 +141,25 @@
     </div>
 
 <script>
+    // ==========================================
+    // 🔴 关键配置 (请修改这里)
+    // ==========================================
+    
+    // 请将此处替换为你 Cloudflare Worker 的完整地址
+    // 格式如: https://acg-proxy.你的名字.workers.dev
+    const WORKER_URL = "https://proud-boat-529f.rebeccademottalfre44004.workers.dev";
+
+    // ==========================================
+
     let GLOBAL_DATA = [];
     let VISIBLE_DATES = new Set(); 
     const STORAGE_KEY = 'acg_db_v3';
-    const CONFIG_KEY = 'acg_config_v3';
 
-    window.onload = function() { loadData(); loadConfig(); updateDateVisibility('init'); };
+    window.onload = function() { loadData(); updateDateVisibility('init'); };
 
-    // 修复：演示文本稍微简化，避免AI困惑
     function fillDemoText() {
-        const demoText = `这几天收集的好东西：
-1. 历时122天打了9959个敌人 (自动识别数字ID)
-2. 这个画风感觉是调四季老师的#(呵呵) (自动识别作者)
-3. [Racer] Onii-chan no Hanbun... (自动识别书名)
-4. redgif搜neko (搜索指令测试)
-5. 还有一个pixiv图 87110616 挺好看的`;
-        document.getElementById('rawText').value = demoText;
+        // 演示文本：包含数字ID、作者、书名、指令
+        document.getElementById('rawText').value = `这几天收集的好东西：\n1. 历时122天打了9959个敌人\n2. 这个画风感觉是调四季老师的#(呵呵)\n3. [Racer] Onii-chan no Hanbun...\n4. redgif搜neko\n5. 还有一个pixiv图 87110616 挺好看的`;
     }
 
     function loadData() { const saved = localStorage.getItem(STORAGE_KEY); if (saved) GLOBAL_DATA = JSON.parse(saved); }
@@ -210,12 +205,11 @@
         document.getElementById('count-code').innerText = visibleData.filter(i => i.type === 'code').length;
         document.getElementById('count-work').innerText = visibleData.filter(i => i.type === 'work').length;
         document.getElementById('count-person').innerText = visibleData.filter(i => i.type === 'person').length;
-
+        
         const listCode = document.getElementById('list-code');
         const listWork = document.getElementById('list-work');
         const listPerson = document.getElementById('list-person');
         const listTimeline = document.getElementById('view-timeline');
-        
         listCode.innerHTML = ''; listWork.innerHTML = ''; listPerson.innerHTML = ''; listTimeline.innerHTML = '';
 
         visibleData.forEach(item => {
@@ -242,65 +236,57 @@
         else if (item.isInstruction) linksHtml = `<a href="${item.mainLink}" target="_blank" class="link-btn highlight">执行</a>`;
         else if (item.type === 'work') linksHtml = `<a href="https://18comic.vip/search/photos?search_query=${item.content}" target="_blank" class="link-btn">禁漫</a><a href="https://exhentai.org/?f_search=${item.content}" target="_blank" class="link-btn">EH</a><a href="https://www.google.com/search?q=${item.content}" target="_blank" class="link-btn">Google</a>`;
         else if (item.type === 'person') linksHtml = `<a href="https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr" target="_blank" class="link-btn highlight">Pixiv</a><a href="https://x.com/search?q=${item.content}&src=typeahead_click" target="_blank" class="link-btn">X</a>`;
-        
         return `<div class="card type-${item.type}"><div class="card-header-row"><div class="tags"><span class="tag">${item.subType}</span></div><div class="card-date">${dateKey} ${timeStr}</div></div><div class="card-main">${item.content}</div><div class="links">${linksHtml}</div></div>`;
     }
 
     async function runProcessor() {
-        saveConfig();
         const text = document.getElementById('rawText').value;
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const apiBase = document.getElementById('apiBase').value.replace(/\/+$/, '');
-        const model = document.getElementById('modelName').value;
-
         if (!text) return alert("请先输入文本");
+        
         document.getElementById('processBtn').disabled = true;
         log("处理中...");
 
-        // 1. 本地提取 (修复版：先尝试提取独立ID，再尝试拼接)
+        // 1. 本地提取
         const localItems = processLocalNumbers(text);
         if(localItems.length > 0) addItems(localItems, false);
 
-        // 2. AI 提取
-        let aiItems = [];
-        if (apiKey) {
-            log("AI 分析中...");
+        // 2. AI 提取 (通过 Cloudflare Worker)
+        // 注意：这里不再需要检查密码，直接调用
+        if (WORKER_URL && WORKER_URL.startsWith("http")) {
+            log("AI 智能分析中...");
             try { 
-                aiItems = await processAI(text, apiKey, apiBase, model); 
+                const aiItems = await processAI(text, WORKER_URL, "deepseek-chat"); 
                 if(aiItems.length > 0) addItems(aiItems, false); 
             } 
             catch (e) { log("AI 失败: " + e.message); }
+        } else {
+             log("请先在代码中配置 WORKER_URL");
         }
         
-        if (localItems.length > 0 || aiItems.length > 0) { updateDateVisibility('new'); log(`完成，显示今日新增`); } 
-        else { log("未发现有效新内容"); }
+        if (localItems.length > 0 || (document.getElementById('statusLog').innerText.includes("AI"))) { 
+            updateDateVisibility('new'); 
+            log(`完成，显示今日新增`); 
+        } else { 
+            log("完成 (无新内容)"); 
+        }
 
         document.getElementById('rawText').value = '';
         document.getElementById('processBtn').disabled = false;
     }
 
-    // 修复的本地逻辑：先去掉行首序号，再提取
     function processLocalNumbers(text) {
         const results = [];
         const lines = text.split('\n');
-        
         lines.forEach(line => {
             if (!line.trim()) return;
-            
-            // 步骤A: 去除行首的列表序号 "1. " 或 "1、"
             let cleanLine = line.replace(/^\s*\d+[\.\、\s]\s*/, '');
-            
-            // 步骤B: 优先查找是否有独立的 6-8 位数字 (例如 Pixiv ID 87110616)
             const explicitMatch = cleanLine.match(/\b\d{6,8}\b/);
-            
             if (explicitMatch) {
-                // 如果找到了明确的ID，直接用它，不要去乱拼接
                 const id = explicitMatch[0];
                 const isPixiv = id.length === 8;
                 const link = isPixiv ? `https://www.pixiv.net/artworks/${id}` : `https://18comic.vip/photo/${id}`;
                 results.push({ type: 'code', content: id, original: line.trim(), mainLink: link, subType: isPixiv ? 'Pixiv' : '18c' });
             } else {
-                // 步骤C: 如果没找到独立ID，再尝试“隐藏代码拼接”逻辑 (122...9959)
                 const combinedNum = cleanLine.replace(/[^0-9]/g, '');
                 if (combinedNum.length >= 6 && combinedNum.length <= 8) {
                     const isPixiv = combinedNum.length === 8;
@@ -312,37 +298,31 @@
         return results;
     }
 
-    // 修复的 AI 逻辑：增加对 [Author] 书名的明确指示
-    async function processAI(text, key, base, model) {
-        const systemPrompt = `
-        Role: ACG Data Extraction Expert.
-        Rules: 
-        1. Return JSON ONLY.
-        2. Ignore any line numbering (e.g. "1.", "2.").
-        3. Ignore 6-8 digit numbers (Local processor handles them).
-        4. Special Format "[Name] Title": Extract 'Name' as 'person', 'Title' as 'work'.
-        5. "redgif搜xxx": Extract 'redgif' as platform, 'xxx' as query.
+    async function processAI(text, workerUrl, model) {
+        const systemPrompt = `Role: ACG Data Extraction Expert. Rules: 1. Return JSON ONLY. 2. Ignore line numbering. 3. Ignore 6-8 digit numbers. 4. Special Format "[Name] Title": Extract 'Name' as 'person', 'Title' as 'work'. 5. "redgif搜xxx": Extract 'redgif' as platform, 'xxx' as query. Format: { "results": [ { "type": "person", "content": "Name", "sub_type": "Artist" } ] }`;
         
-        Format: { "results": [ { "type": "person", "content": "Name", "sub_type": "Artist" } ] }
-        `;
-        
-        const response = await fetch(`${base}/chat/completions`, {
+        // 直接 POST 到你的 Worker，无需 Key
+        const response = await fetch(workerUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-            body: JSON.stringify({ model: model, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }], response_format: { type: "json_object" } })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                model: model, 
+                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }], 
+                response_format: { type: "json_object" } 
+            })
         });
+        
         const data = await response.json();
-        const rawResults = JSON.parse(data.choices[0].message.content).results || [];
+        // 处理 DeepSeek 返回的标准格式
+        const content = data.choices ? data.choices[0].message.content : JSON.stringify(data);
+        const rawResults = JSON.parse(content).results || [];
         
         return rawResults.map(item => {
-            let link = '';
-            // 简单清洗 content，去掉可能残留的 "3. "
             item.content = item.content.replace(/^\d+[\.\s]/, '');
-            
+            let link = '';
             if (item.type === 'instruction') { item.type = 'work'; item.isInstruction = true; const p = item.platform?.toLowerCase() || ''; link = `https://www.google.com/search?q=site:${p}.com ${item.query}`; } 
             else if (item.type === 'work') link = `https://18comic.vip/search/photos?search_query=${item.content}`;
             else if (item.type === 'person') link = `https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr`;
-            
             return { type: item.type, content: item.content, subType: item.sub_type || (item.isInstruction ? 'CMD' : 'Unknown'), mainLink: link, isInstruction: !!item.isInstruction, original: item.content };
         });
     }
@@ -350,8 +330,6 @@
     function addItems(newItems, autoRender = true) {
         let addedCount = 0;
         newItems.reverse().forEach(item => {
-            // 强力去重：不仅检查内容，还检查是否已存在同样内容的“Code”
-            // 防止 AI 和 本地 同时提取同一个 ID 导致重复
             const exists = GLOBAL_DATA.some(old => old.content === item.content);
             if (!exists) { item.timestamp = Date.now(); GLOBAL_DATA.unshift(item); addedCount++; }
         });
@@ -359,15 +337,15 @@
         return addedCount;
     }
 
-    function loadConfig() { const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); if(config.apiBase) document.getElementById('apiBase').value = config.apiBase; if(config.apiKey) document.getElementById('apiKey').value = config.apiKey; }
-    function saveConfig() { localStorage.setItem(CONFIG_KEY, JSON.stringify({ apiBase: document.getElementById('apiBase').value, apiKey: document.getElementById('apiKey').value })); }
-    const log = (msg) => document.getElementById('statusLog').innerText = msg;
-    const getId = (id) => document.getElementById(id);
-    function switchView(mode) { getId('btn-cat').className = mode === 'category' ? 'btn btn-ghost active' : 'btn btn-ghost'; getId('btn-time').className = mode === 'timeline' ? 'btn btn-ghost active' : 'btn btn-ghost'; getId('view-category').className = mode === 'category' ? 'columns-wrapper' : 'columns-wrapper hidden'; getId('view-timeline').className = mode === 'timeline' ? 'timeline-wrapper' : 'timeline-wrapper hidden'; }
-    function toggleColumn(colId, event) { if (event.target.tagName === 'BUTTON') return; getId(colId).classList.toggle('collapsed'); }
     function exportData() { if (GLOBAL_DATA.length === 0) return alert("无数据"); const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(GLOBAL_DATA, null, 2)); const a = document.createElement('a'); a.href = dataStr; a.download = `ACG_Backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); }
     function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const items = JSON.parse(e.target.result); addItems(items); alert("导入成功，页面将刷新"); updateDateVisibility('new'); } catch(e) { alert("文件格式错误"); } input.value = ''; }; reader.readAsText(file); }
     function clearHistory() { if(confirm("确定清空？")) { GLOBAL_DATA = []; saveData(); updateDateVisibility('init'); } }
+    
+    // UI
+    const getId = (id) => document.getElementById(id);
+    const log = (msg) => getId('statusLog').innerText = msg;
+    function switchView(mode) { getId('btn-cat').className = mode === 'category' ? 'btn btn-ghost active' : 'btn btn-ghost'; getId('btn-time').className = mode === 'timeline' ? 'btn btn-ghost active' : 'btn btn-ghost'; getId('view-category').className = mode === 'category' ? 'columns-wrapper' : 'columns-wrapper hidden'; getId('view-timeline').className = mode === 'timeline' ? 'timeline-wrapper' : 'timeline-wrapper hidden'; }
+    function toggleColumn(colId, event) { if (event.target.tagName === 'BUTTON') return; getId(colId).classList.toggle('collapsed'); }
 </script>
 </body>
 </html>
