@@ -109,6 +109,7 @@
         <div style="display:flex; gap:10px; flex:1;">
             <button class="btn btn-ghost active" onclick="switchView('category')" id="btn-cat">📚 分类视图</button>
             <button class="btn btn-ghost" onclick="switchView('timeline')" id="btn-time">⏱️ 时间轴</button>
+            <button class="btn btn-danger" onclick="openGlobal()" style="margin-left:auto;">🔥 打开全部 (当前页)</button>
         </div>
         <span id="statusLog" style="font-size:0.85em; color:var(--sub-text);">就绪</span>
     </div>
@@ -232,6 +233,23 @@
         items.forEach((item, idx) => { if(item.mainLink) setTimeout(() => window.open(item.mainLink, '_blank'), idx * 250); });
     }
 
+    function openGlobal() {
+        // 1. 找到当前日期下，所有有链接的卡片
+        const items = GLOBAL_DATA.filter(i => 
+            VISIBLE_DATES.has(getFormattedDateKey(i.timestamp)) && i.mainLink
+        );
+        
+        if (items.length === 0) return alert("当前视图下没有可打开的链接");
+        
+        // 2. 安全确认
+        if (!confirm(`⚠️ 警告：即将打开 ${items.length} 个网页！\n\n如果数量过多，浏览器可能会拦截或卡死。\n\n确定要继续吗？`)) return;
+
+        // 3. 依次打开
+        items.forEach((item, idx) => {
+            setTimeout(() => window.open(item.mainLink, '_blank'), idx * 300); // 每隔0.3秒开一个，防止浏览器崩溃
+        });
+    }
+
     function createCardHtml(item) {
         const dateKey = getFormattedDateKey(item.timestamp);
         const timeStr = new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -353,4 +371,5 @@
 </script>
 </body>
 </html>
+
 
