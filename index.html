@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACG 资源数据库 V4.0 (智能日期版)</title>
+    <title>ACG 资源数据库 V4.1 (演示版)</title>
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card-bg: #ffffff; --border: #e2e8f0; --text: #1e293b; --sub-text: #64748b; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); max-width: 1200px; margin: 0 auto; padding: 15px; color: var(--text); }
@@ -24,8 +24,11 @@
         .btn-info { background: #e0f2fe; color: #0284c7; }
         .btn-ghost { background: #f1f5f9; color: #475569; }
         .btn-ghost.active { background: #cbd5e1; color: #0f172a; font-weight: bold; }
+        /* 演示按钮特效 */
+        .btn-demo { background: #fff; border: 1px dashed var(--primary); color: var(--primary); }
+        .btn-demo:hover { background: #eff6ff; }
 
-        /* 日期导航栏 (V4.0 新增) */
+        /* 日期导航栏 */
         .date-nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 15px; scrollbar-width: none; -ms-overflow-style: none; }
         .date-nav::-webkit-scrollbar { display: none; }
         .date-pill { padding: 6px 12px; border-radius: 20px; font-size: 0.85em; cursor: pointer; border: 1px solid var(--border); background: white; color: var(--sub-text); transition: 0.2s; white-space: nowrap; }
@@ -34,24 +37,18 @@
         .date-pill.active::after { content: ' ✓'; font-size: 0.8em; opacity: 0.8; }
 
         /* 输入区 */
-        textarea { width: 100%; height: 80px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; resize: vertical; font-family: monospace; box-sizing: border-box; margin-bottom: 10px; }
+        textarea { width: 100%; height: 100px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; resize: vertical; font-family: monospace; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
         
         /* 布局适配 */
         .columns-wrapper { display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap; }
         .column { flex: 1; min-width: 300px; background: #fff; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; max-height: 80vh; transition: 0.3s; }
-        
-        @media (max-width: 768px) {
-            .column { min-width: 100%; max-height: 60vh; } 
-            .row { gap: 8px; }
-            .btn { flex: 1; font-size: 0.8em; padding: 8px 10px; }
-        }
+        @media (max-width: 768px) { .column { min-width: 100%; max-height: 60vh; } .row { gap: 8px; } .btn { flex: 1; font-size: 0.8em; padding: 8px 10px; } }
 
         /* 列表与卡片 */
         .col-header { background: #f8fafc; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .col-title { font-weight: bold; font-size: 0.95em; display: flex; align-items: center; gap: 6px; }
         .badge-count { font-size: 0.8em; background: #e2e8f0; padding: 2px 8px; border-radius: 10px; color: var(--sub-text); }
         .col-content { padding: 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex-grow: 1; }
-        
         .column.collapsed { flex: 0 0 40px; min-width: 0; cursor: pointer; background: #f1f5f9; }
         .column.collapsed .col-content, .column.collapsed .col-actions, .column.collapsed .col-title span { display: none; }
         .column.collapsed .col-header { justify-content: center; padding: 10px 0; height: 100%; border: none; writing-mode: vertical-lr; }
@@ -76,10 +73,15 @@
 </head>
 <body>
 
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+        <span style="font-weight:bold; color:#1e293b;">ACG 资源整理助手</span>
+        <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.8em;" onclick="alert('【使用说明】\n1. 复制文本：将包含车牌、作者名、书名的混乱文字复制。\n2. 粘贴提取：放入输入框点击提取，自动识别并生成链接。\n3. 自动保存：数据保存在本地，下次打开还在。\n4. 智能过滤：默认只展示今天提取的新内容，旧内容会自动折叠。')">❓ 如何使用</button>
+    </div>
+
     <div class="config-box">
         <div class="row">
             <span style="font-weight:bold; font-size:0.9em;">⚙️ API设置:</span>
-            <input type="password" id="apiKey" placeholder="API Key">
+            <input type="password" id="apiKey" placeholder="API Key (可选)">
             <input type="text" id="apiBase" value="https://api.deepseek.com" placeholder="Base URL">
             <input type="hidden" id="modelName" value="deepseek-chat">
         </div>
@@ -93,16 +95,23 @@
         </div>
     </div>
 
-    <textarea id="rawText" placeholder="在此粘贴文本... (智能模式：新内容会自动置顶，并自动折叠旧日期)"></textarea>
+    <div style="text-align:right; margin-bottom:5px;">
+        <button class="btn btn-demo" onclick="fillDemoText()">🎲 填入试用文本 (点击试试)</button>
+    </div>
+
+    <textarea id="rawText" placeholder="在此粘贴混乱文本...
+👇 支持识别：
+1. 神秘代码 (如 123456)
+2. 作者/书名 (如 调四季 / 某某本子)
+3. 搜索指令 (如 redgif搜neko)"></textarea>
 
     <div class="row" style="margin-bottom: 15px;">
         <button class="btn btn-primary" id="processBtn" onclick="runProcessor()" style="flex:1;">
-            🚀 提取并入库
+            🚀 一键提取并入库
         </button>
     </div>
 
-    <div id="dateNavigator" class="date-nav">
-        </div>
+    <div id="dateNavigator" class="date-nav"></div>
 
     <div class="row" style="border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 5px;">
         <div style="display:flex; gap:10px; flex:1;">
@@ -113,164 +122,98 @@
     </div>
 
     <div id="resultsArea" class="results-container">
-        
         <div id="view-category" class="columns-wrapper">
             <div class="column" id="col-code">
                 <div class="col-header" onclick="toggleColumn('col-code', event)">
                     <div class="col-title">🔢 ID/车牌 <span id="count-code" class="badge-count">0</span></div>
-                    <div class="col-actions">
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.7em;" onclick="openAll('code'); event.stopPropagation();">🔥一键打开</button>
-                    </div>
+                    <div class="col-actions"><button class="btn btn-ghost" style="padding:2px 8px; font-size:0.7em;" onclick="openAll('code'); event.stopPropagation();">🔥一键打开</button></div>
                 </div>
                 <div class="col-content" id="list-code"></div>
             </div>
-
             <div class="column" id="col-work">
                 <div class="col-header" onclick="toggleColumn('col-work', event)">
                     <div class="col-title">🎮 作品/书籍 <span id="count-work" class="badge-count">0</span></div>
-                    <div class="col-actions">
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.7em;" onclick="openAll('work'); event.stopPropagation();">🔥一键打开</button>
-                    </div>
+                    <div class="col-actions"><button class="btn btn-ghost" style="padding:2px 8px; font-size:0.7em;" onclick="openAll('work'); event.stopPropagation();">🔥一键打开</button></div>
                 </div>
                 <div class="col-content" id="list-work"></div>
             </div>
-
             <div class="column" id="col-person">
                 <div class="col-header" onclick="toggleColumn('col-person', event)">
                     <div class="col-title">👤 作者/角色 <span id="count-person" class="badge-count">0</span></div>
-                    <div class="col-actions">
-                        <button class="btn btn-ghost" style="padding:2px 8px; font-size:0.7em;" onclick="openAll('person'); event.stopPropagation();">🔥一键打开</button>
-                    </div>
+                    <div class="col-actions"><button class="btn btn-ghost" style="padding:2px 8px; font-size:0.7em;" onclick="openAll('person'); event.stopPropagation();">🔥一键打开</button></div>
                 </div>
                 <div class="col-content" id="list-person"></div>
             </div>
         </div>
-
         <div id="view-timeline" class="timeline-wrapper hidden"></div>
-
     </div>
 
 <script>
-    // ===========================
-    // 全局状态管理
-    // ===========================
     let GLOBAL_DATA = [];
-    // 存储当前“展开”的日期字符串 (例如 "12-07")
     let VISIBLE_DATES = new Set(); 
-    
     const STORAGE_KEY = 'acg_db_v3';
     const CONFIG_KEY = 'acg_config_v3';
 
-    window.onload = function() {
-        loadData();
-        loadConfig();
-        // 初始化：默认只展开最新的一天
-        updateDateVisibility('init');
-    };
+    window.onload = function() { loadData(); loadConfig(); updateDateVisibility('init'); };
 
-    function loadData() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) GLOBAL_DATA = JSON.parse(saved);
+    // V4.1 新增：填充演示文本
+    function fillDemoText() {
+        const demoText = `这几天收集的好东西：
+1. 历时122天打了9959个敌人 (自动识别数字ID)
+2. 这个画风感觉是调四季老师的#(呵呵) (自动识别作者)
+3. [Racer] Onii-chan no Hanbun... (自动识别书名)
+4. redgif搜neko (搜索指令测试)
+5. 还有一个pixiv图 87110616 挺好看的`;
+        
+        document.getElementById('rawText').value = demoText;
+        
+        // 视觉反馈
+        const btn = document.querySelector('.btn-demo');
+        const originText = btn.innerText;
+        btn.innerText = "✅ 已填入，请点击下方提取按钮";
+        setTimeout(() => btn.innerText = originText, 2000);
     }
-    
-    function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(GLOBAL_DATA));
-        // 保存后刷新渲染，保持当前的日期视图不变
-        renderAll();
-    }
 
-    // ===========================
-    // V4.0 核心：日期与显隐逻辑
-    // ===========================
+    function loadData() { const saved = localStorage.getItem(STORAGE_KEY); if (saved) GLOBAL_DATA = JSON.parse(saved); }
+    function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(GLOBAL_DATA)); renderAll(); }
 
-    // 格式化时间戳为简短字符串
     function getFormattedDateKey(timestamp) {
         if (!timestamp) return '未知';
         const date = new Date(timestamp);
         const now = new Date();
-        
         const m = (date.getMonth() + 1).toString().padStart(2, '0');
         const d = date.getDate().toString().padStart(2, '0');
-        
-        // 跨年逻辑：如果是今年，不显示年份
-        if (date.getFullYear() === now.getFullYear()) {
-            return `${m}-${d}`;
-        } else {
-            return `${date.getFullYear()}-${m}-${d}`;
-        }
+        return (date.getFullYear() === now.getFullYear()) ? `${m}-${d}` : `${date.getFullYear()}-${m}-${d}`;
     }
 
-    // 更新可见性状态
-    // mode = 'init' (加载页面): 默认展开最新一天
-    // mode = 'new' (有新数据): 默认展开今天，收起其他
     function updateDateVisibility(mode) {
         const allDates = [...new Set(GLOBAL_DATA.map(i => getFormattedDateKey(i.timestamp)))];
-        // 排序：新日期在前
-        // 注意：简单的字符串比较在 YYYY-MM-DD 下是有效的，但 MM-DD 跨年会有问题
-        // 这里我们假设 GLOBAL_DATA 已经是按时间倒序存的，所以 allDates[0] 就是最新的
-        
         if (allDates.length === 0) return;
-
-        if (mode === 'init') {
-            VISIBLE_DATES.clear();
-            VISIBLE_DATES.add(allDates[0]); // 只加最新的
-        } else if (mode === 'new') {
-            // 如果添加了新数据，强制只看今天(或最新数据的日期)
-            VISIBLE_DATES.clear();
-            VISIBLE_DATES.add(getFormattedDateKey(Date.now()));
-        }
-
-        renderDateNav();
-        renderAll();
+        if (mode === 'init') { VISIBLE_DATES.clear(); VISIBLE_DATES.add(allDates[0]); }
+        else if (mode === 'new') { VISIBLE_DATES.clear(); VISIBLE_DATES.add(getFormattedDateKey(Date.now())); }
+        renderDateNav(); renderAll();
     }
 
-    // 渲染顶部日期导航条
     function renderDateNav() {
-        const nav = document.getElementById('dateNavigator');
-        nav.innerHTML = '';
-        
-        // 获取所有唯一日期
+        const nav = document.getElementById('dateNavigator'); nav.innerHTML = '';
         const allDates = [...new Set(GLOBAL_DATA.map(i => getFormattedDateKey(i.timestamp)))];
-        
-        if (allDates.length === 0) {
-            nav.innerHTML = '<span style="font-size:0.8em; color:#999; padding:5px;">暂无历史日期</span>';
-            return;
-        }
-
+        if (allDates.length === 0) return;
         allDates.forEach(dateKey => {
             const isActive = VISIBLE_DATES.has(dateKey);
             const pill = document.createElement('div');
             pill.className = `date-pill ${isActive ? 'active' : ''}`;
             pill.innerText = dateKey;
-            pill.onclick = () => toggleDate(dateKey);
+            pill.onclick = () => {
+                if (VISIBLE_DATES.has(dateKey)) VISIBLE_DATES.delete(dateKey);
+                else VISIBLE_DATES.add(dateKey);
+                renderDateNav(); renderAll();
+            };
             nav.appendChild(pill);
         });
     }
 
-    // 切换日期开关
-    function toggleDate(dateKey) {
-        if (VISIBLE_DATES.has(dateKey)) {
-            // 如果是最后一个展开的，不允许全关？或者允许全关变空？
-            // 允许全关吧，这样用户可以清空视野
-            VISIBLE_DATES.delete(dateKey);
-        } else {
-            VISIBLE_DATES.add(dateKey);
-        }
-        renderDateNav();
-        renderAll();
-    }
-
-    // ===========================
-    // 渲染逻辑 (已修改支持过滤)
-    // ===========================
     function renderAll() {
-        // 1. 过滤：只保留属于 VISIBLE_DATES 的数据
-        const visibleData = GLOBAL_DATA.filter(item => {
-            const key = getFormattedDateKey(item.timestamp);
-            return VISIBLE_DATES.has(key);
-        });
-
-        // 2. 更新计数 (只显示可见的数量)
+        const visibleData = GLOBAL_DATA.filter(item => VISIBLE_DATES.has(getFormattedDateKey(item.timestamp)));
         document.getElementById('count-code').innerText = visibleData.filter(i => i.type === 'code').length;
         document.getElementById('count-work').innerText = visibleData.filter(i => i.type === 'work').length;
         document.getElementById('count-person').innerText = visibleData.filter(i => i.type === 'person').length;
@@ -291,61 +234,25 @@
         });
     }
 
-    // 一键打开 (智能版：只打开当前可见的)
     function openAll(type) {
-        // 过滤：类型匹配 && 日期可见
-        const items = GLOBAL_DATA.filter(i => {
-            const isVisible = VISIBLE_DATES.has(getFormattedDateKey(i.timestamp));
-            return i.type === type && isVisible;
-        });
-
-        if (items.length === 0) return alert("当前视图下没有可打开的内容（请检查日期是否已折叠）");
-        
-        const confirmMsg = `即将打开 ${items.length} 个链接。\n(只包含当前展开日期的内容)`;
-        if (items.length > 5 && !confirm(confirmMsg)) return;
-        
-        items.forEach((item, idx) => {
-            if(item.mainLink) setTimeout(() => window.open(item.mainLink, '_blank'), idx * 250);
-        });
+        const items = GLOBAL_DATA.filter(i => i.type === type && VISIBLE_DATES.has(getFormattedDateKey(i.timestamp)));
+        if (items.length === 0) return alert("当前视图下无内容");
+        if (items.length > 5 && !confirm(`打开 ${items.length} 个链接？`)) return;
+        items.forEach((item, idx) => { if(item.mainLink) setTimeout(() => window.open(item.mainLink, '_blank'), idx * 250); });
     }
 
     function createCardHtml(item) {
         const dateKey = getFormattedDateKey(item.timestamp);
-        // 时间显示增加具体时刻
         const timeStr = new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
         let linksHtml = '';
-        if (item.type === 'code') {
-            linksHtml = `<a href="${item.mainLink}" target="_blank" class="link-btn highlight">直达</a>`;
-        } else if (item.isInstruction) {
-            linksHtml = `<a href="${item.mainLink}" target="_blank" class="link-btn highlight">执行</a>`;
-        } else if (item.type === 'work') {
-            linksHtml = `
-                <a href="https://18comic.vip/search/photos?search_query=${item.content}" target="_blank" class="link-btn">禁漫</a>
-                <a href="https://exhentai.org/?f_search=${item.content}" target="_blank" class="link-btn">EH</a>
-                <a href="https://www.google.com/search?q=${item.content}" target="_blank" class="link-btn">Google</a>
-            `;
-        } else if (item.type === 'person') {
-            linksHtml = `
-                <a href="https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr" target="_blank" class="link-btn highlight">Pixiv</a>
-                <a href="https://x.com/search?q=${item.content}&src=typeahead_click" target="_blank" class="link-btn">X</a>
-            `;
-        }
-        return `
-            <div class="card type-${item.type}">
-                <div class="card-header-row">
-                    <div class="tags"><span class="tag">${item.subType}</span></div>
-                    <div class="card-date">${dateKey} ${timeStr}</div>
-                </div>
-                <div class="card-main">${item.content}</div>
-                <div class="links">${linksHtml}</div>
-            </div>
-        `;
+        if (item.type === 'code') linksHtml = `<a href="${item.mainLink}" target="_blank" class="link-btn highlight">直达</a>`;
+        else if (item.isInstruction) linksHtml = `<a href="${item.mainLink}" target="_blank" class="link-btn highlight">执行</a>`;
+        else if (item.type === 'work') linksHtml = `<a href="https://18comic.vip/search/photos?search_query=${item.content}" target="_blank" class="link-btn">禁漫</a><a href="https://exhentai.org/?f_search=${item.content}" target="_blank" class="link-btn">EH</a><a href="https://www.google.com/search?q=${item.content}" target="_blank" class="link-btn">Google</a>`;
+        else if (item.type === 'person') linksHtml = `<a href="https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr" target="_blank" class="link-btn highlight">Pixiv</a><a href="https://x.com/search?q=${item.content}&src=typeahead_click" target="_blank" class="link-btn">X</a>`;
+        
+        return `<div class="card type-${item.type}"><div class="card-header-row"><div class="tags"><span class="tag">${item.subType}</span></div><div class="card-date">${dateKey} ${timeStr}</div></div><div class="card-main">${item.content}</div><div class="links">${linksHtml}</div></div>`;
     }
 
-    // ===========================
-    // 数据处理与 API
-    // ===========================
     async function runProcessor() {
         saveConfig();
         const text = document.getElementById('rawText').value;
@@ -354,34 +261,21 @@
         const model = document.getElementById('modelName').value;
 
         if (!text) return alert("请先输入文本");
-        
         document.getElementById('processBtn').disabled = true;
         log("处理中...");
 
-        // 1. 本地
         const localItems = processLocalNumbers(text);
-        if(localItems.length > 0) addItems(localItems, false); // 先别刷新UI
+        if(localItems.length > 0) addItems(localItems, false);
 
-        // 2. AI
         let aiItems = [];
         if (apiKey) {
             log("AI 分析中...");
-            try {
-                aiItems = await processAI(text, apiKey, apiBase, model);
-                if(aiItems.length > 0) addItems(aiItems, false);
-            } catch (e) {
-                log("AI 失败: " + e.message);
-            }
+            try { aiItems = await processAI(text, apiKey, apiBase, model); if(aiItems.length > 0) addItems(aiItems, false); } 
+            catch (e) { log("AI 失败: " + e.message); }
         }
         
-        // 3. 最终触发可见性更新
-        // 如果有新数据(local或AI)，这里统一触发
-        if (localItems.length > 0 || aiItems.length > 0) {
-            updateDateVisibility('new'); // 触发“新数据模式”：只看今天，收起其他
-            log(`已完成，当前仅显示今日新增`);
-        } else {
-            log("未发现有效新内容");
-        }
+        if (localItems.length > 0 || aiItems.length > 0) { updateDateVisibility('new'); log(`完成，显示今日新增`); } 
+        else { log("未发现有效新内容"); }
 
         document.getElementById('rawText').value = '';
         document.getElementById('processBtn').disabled = false;
@@ -391,17 +285,9 @@
         let addedCount = 0;
         newItems.reverse().forEach(item => {
             const exists = GLOBAL_DATA.some(old => old.type === item.type && old.content === item.content);
-            if (!exists) {
-                item.timestamp = Date.now();
-                GLOBAL_DATA.unshift(item);
-                addedCount++;
-            }
+            if (!exists) { item.timestamp = Date.now(); GLOBAL_DATA.unshift(item); addedCount++; }
         });
-        
-        if (addedCount > 0) {
-            // 保存数据，但不一定立刻渲染，由调用者决定是否触发 updateDateVisibility
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(GLOBAL_DATA));
-        }
+        if (addedCount > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(GLOBAL_DATA));
         return addedCount;
     }
 
@@ -413,9 +299,7 @@
             const combinedNum = line.replace(/[^0-9]/g, '');
             if (combinedNum.length >= 6 && combinedNum.length <= 8) {
                 const isPixiv = combinedNum.length === 8;
-                const link = isPixiv 
-                    ? `https://www.pixiv.net/artworks/${combinedNum}`
-                    : `https://18comic.vip/photo/${combinedNum}`;
+                const link = isPixiv ? `https://www.pixiv.net/artworks/${combinedNum}` : `https://18comic.vip/photo/${combinedNum}`;
                 results.push({ type: 'code', content: combinedNum, original: line.trim(), mainLink: link, subType: isPixiv ? 'Pixiv' : '18c' });
             }
         });
@@ -423,90 +307,32 @@
     }
 
     async function processAI(text, key, base, model) {
-        const systemPrompt = `
-        Role: ACG Data Extraction Expert.
-        Rules: Return JSON ONLY. Ignore 6-8 digit numbers. Drop chatty comments.
-        Format: { "results": [ { "type": "person", "content": "Name", "sub_type": "Artist" } ] }
-        `;
+        const systemPrompt = `Role: ACG Data Extraction Expert. Rules: Return JSON ONLY. Ignore 6-8 digit numbers. Drop chatty comments. Format: { "results": [ { "type": "person", "content": "Name", "sub_type": "Artist" } ] }`;
         const response = await fetch(`${base}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }],
-                response_format: { type: "json_object" }
-            })
+            body: JSON.stringify({ model: model, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }], response_format: { type: "json_object" } })
         });
         const data = await response.json();
         const rawResults = JSON.parse(data.choices[0].message.content).results || [];
         return rawResults.map(item => {
             let link = '';
-            if (item.type === 'instruction') {
-                item.type = 'work'; item.isInstruction = true;
-                const p = item.platform?.toLowerCase() || '';
-                link = `https://www.google.com/search?q=site:${p}.com ${item.query}`;
-            } else if (item.type === 'work') {
-                link = `https://18comic.vip/search/photos?search_query=${item.content}`;
-            } else if (item.type === 'person') {
-                link = `https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr`;
-            }
-            return {
-                type: item.type, content: item.content, subType: item.sub_type || (item.isInstruction ? 'CMD' : 'Unknown'),
-                mainLink: link, isInstruction: !!item.isInstruction, original: item.content
-            };
+            if (item.type === 'instruction') { item.type = 'work'; item.isInstruction = true; const p = item.platform?.toLowerCase() || ''; link = `https://www.google.com/search?q=site:${p}.com ${item.query}`; } 
+            else if (item.type === 'work') link = `https://18comic.vip/search/photos?search_query=${item.content}`;
+            else if (item.type === 'person') link = `https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr`;
+            return { type: item.type, content: item.content, subType: item.sub_type || (item.isInstruction ? 'CMD' : 'Unknown'), mainLink: link, isInstruction: !!item.isInstruction, original: item.content };
         });
     }
 
-    // 辅助函数
-    function loadConfig() {
-        const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-        if(config.apiBase) document.getElementById('apiBase').value = config.apiBase;
-        if(config.apiKey) document.getElementById('apiKey').value = config.apiKey;
-    }
-    function saveConfig() {
-        localStorage.setItem(CONFIG_KEY, JSON.stringify({
-            apiBase: document.getElementById('apiBase').value,
-            apiKey: document.getElementById('apiKey').value
-        }));
-    }
+    function loadConfig() { const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); if(config.apiBase) document.getElementById('apiBase').value = config.apiBase; if(config.apiKey) document.getElementById('apiKey').value = config.apiKey; }
+    function saveConfig() { localStorage.setItem(CONFIG_KEY, JSON.stringify({ apiBase: document.getElementById('apiBase').value, apiKey: document.getElementById('apiKey').value })); }
     const log = (msg) => document.getElementById('statusLog').innerText = msg;
     const getId = (id) => document.getElementById(id);
-    function switchView(mode) {
-        getId('btn-cat').className = mode === 'category' ? 'btn btn-ghost active' : 'btn btn-ghost';
-        getId('btn-time').className = mode === 'timeline' ? 'btn btn-ghost active' : 'btn btn-ghost';
-        getId('view-category').className = mode === 'category' ? 'columns-wrapper' : 'columns-wrapper hidden';
-        getId('view-timeline').className = mode === 'timeline' ? 'timeline-wrapper' : 'timeline-wrapper hidden';
-    }
-    function toggleColumn(colId, event) {
-        if (event.target.tagName === 'BUTTON') return;
-        getId(colId).classList.toggle('collapsed');
-    }
-    function exportData() {
-        if (GLOBAL_DATA.length === 0) return alert("无数据");
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(GLOBAL_DATA, null, 2));
-        const a = document.createElement('a');
-        a.href = dataStr;
-        a.download = `ACG_Backup_${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a); a.click(); a.remove();
-    }
-    function importData(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const items = JSON.parse(e.target.result);
-                addItems(items);
-                alert("导入成功，页面将刷新");
-                updateDateVisibility('new'); // 视为新数据，只展示新导入的
-            } catch(e) { alert("文件格式错误"); }
-            input.value = '';
-        };
-        reader.readAsText(file);
-    }
-    function clearHistory() {
-        if(confirm("确定清空？")) { GLOBAL_DATA = []; saveData(); updateDateVisibility('init'); }
-    }
+    function switchView(mode) { getId('btn-cat').className = mode === 'category' ? 'btn btn-ghost active' : 'btn btn-ghost'; getId('btn-time').className = mode === 'timeline' ? 'btn btn-ghost active' : 'btn btn-ghost'; getId('view-category').className = mode === 'category' ? 'columns-wrapper' : 'columns-wrapper hidden'; getId('view-timeline').className = mode === 'timeline' ? 'timeline-wrapper' : 'timeline-wrapper hidden'; }
+    function toggleColumn(colId, event) { if (event.target.tagName === 'BUTTON') return; getId(colId).classList.toggle('collapsed'); }
+    function exportData() { if (GLOBAL_DATA.length === 0) return alert("无数据"); const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(GLOBAL_DATA, null, 2)); const a = document.createElement('a'); a.href = dataStr; a.download = `ACG_Backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); a.remove(); }
+    function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const items = JSON.parse(e.target.result); addItems(items); alert("导入成功，页面将刷新"); updateDateVisibility('new'); } catch(e) { alert("文件格式错误"); } input.value = ''; }; reader.readAsText(file); }
+    function clearHistory() { if(confirm("确定清空？")) { GLOBAL_DATA = []; saveData(); updateDateVisibility('init'); } }
 </script>
 </body>
 </html>
