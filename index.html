@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACG 资源数据库 V4.1 (演示版)</title>
+    <title>ACG 资源数据库 V4.2 (修复版)</title>
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card-bg: #ffffff; --border: #e2e8f0; --text: #1e293b; --sub-text: #64748b; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); max-width: 1200px; margin: 0 auto; padding: 15px; color: var(--text); }
@@ -156,7 +156,7 @@
 
     window.onload = function() { loadData(); loadConfig(); updateDateVisibility('init'); };
 
-    // V4.1 新增：填充演示文本
+    // 修复：演示文本稍微简化，避免AI困惑
     function fillDemoText() {
         const demoText = `这几天收集的好东西：
 1. 历时122天打了9959个敌人 (自动识别数字ID)
@@ -164,14 +164,7 @@
 3. [Racer] Onii-chan no Hanbun... (自动识别书名)
 4. redgif搜neko (搜索指令测试)
 5. 还有一个pixiv图 87110616 挺好看的`;
-        
         document.getElementById('rawText').value = demoText;
-        
-        // 视觉反馈
-        const btn = document.querySelector('.btn-demo');
-        const originText = btn.innerText;
-        btn.innerText = "✅ 已填入，请点击下方提取按钮";
-        setTimeout(() => btn.innerText = originText, 2000);
     }
 
     function loadData() { const saved = localStorage.getItem(STORAGE_KEY); if (saved) GLOBAL_DATA = JSON.parse(saved); }
@@ -264,13 +257,18 @@
         document.getElementById('processBtn').disabled = true;
         log("处理中...");
 
+        // 1. 本地提取 (修复版：先尝试提取独立ID，再尝试拼接)
         const localItems = processLocalNumbers(text);
         if(localItems.length > 0) addItems(localItems, false);
 
+        // 2. AI 提取
         let aiItems = [];
         if (apiKey) {
             log("AI 分析中...");
-            try { aiItems = await processAI(text, apiKey, apiBase, model); if(aiItems.length > 0) addItems(aiItems, false); } 
+            try { 
+                aiItems = await processAI(text, apiKey, apiBase, model); 
+                if(aiItems.length > 0) addItems(aiItems, false); 
+            } 
             catch (e) { log("AI 失败: " + e.message); }
         }
         
@@ -281,33 +279,53 @@
         document.getElementById('processBtn').disabled = false;
     }
 
-    function addItems(newItems, autoRender = true) {
-        let addedCount = 0;
-        newItems.reverse().forEach(item => {
-            const exists = GLOBAL_DATA.some(old => old.type === item.type && old.content === item.content);
-            if (!exists) { item.timestamp = Date.now(); GLOBAL_DATA.unshift(item); addedCount++; }
-        });
-        if (addedCount > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(GLOBAL_DATA));
-        return addedCount;
-    }
-
+    // 修复的本地逻辑：先去掉行首序号，再提取
     function processLocalNumbers(text) {
         const results = [];
         const lines = text.split('\n');
+        
         lines.forEach(line => {
             if (!line.trim()) return;
-            const combinedNum = line.replace(/[^0-9]/g, '');
-            if (combinedNum.length >= 6 && combinedNum.length <= 8) {
-                const isPixiv = combinedNum.length === 8;
-                const link = isPixiv ? `https://www.pixiv.net/artworks/${combinedNum}` : `https://18comic.vip/photo/${combinedNum}`;
-                results.push({ type: 'code', content: combinedNum, original: line.trim(), mainLink: link, subType: isPixiv ? 'Pixiv' : '18c' });
+            
+            // 步骤A: 去除行首的列表序号 "1. " 或 "1、"
+            let cleanLine = line.replace(/^\s*\d+[\.\、\s]\s*/, '');
+            
+            // 步骤B: 优先查找是否有独立的 6-8 位数字 (例如 Pixiv ID 87110616)
+            const explicitMatch = cleanLine.match(/\b\d{6,8}\b/);
+            
+            if (explicitMatch) {
+                // 如果找到了明确的ID，直接用它，不要去乱拼接
+                const id = explicitMatch[0];
+                const isPixiv = id.length === 8;
+                const link = isPixiv ? `https://www.pixiv.net/artworks/${id}` : `https://18comic.vip/photo/${id}`;
+                results.push({ type: 'code', content: id, original: line.trim(), mainLink: link, subType: isPixiv ? 'Pixiv' : '18c' });
+            } else {
+                // 步骤C: 如果没找到独立ID，再尝试“隐藏代码拼接”逻辑 (122...9959)
+                const combinedNum = cleanLine.replace(/[^0-9]/g, '');
+                if (combinedNum.length >= 6 && combinedNum.length <= 8) {
+                    const isPixiv = combinedNum.length === 8;
+                    const link = isPixiv ? `https://www.pixiv.net/artworks/${combinedNum}` : `https://18comic.vip/photo/${combinedNum}`;
+                    results.push({ type: 'code', content: combinedNum, original: line.trim(), mainLink: link, subType: isPixiv ? 'Pixiv' : '18c' });
+                }
             }
         });
         return results;
     }
 
+    // 修复的 AI 逻辑：增加对 [Author] 书名的明确指示
     async function processAI(text, key, base, model) {
-        const systemPrompt = `Role: ACG Data Extraction Expert. Rules: Return JSON ONLY. Ignore 6-8 digit numbers. Drop chatty comments. Format: { "results": [ { "type": "person", "content": "Name", "sub_type": "Artist" } ] }`;
+        const systemPrompt = `
+        Role: ACG Data Extraction Expert.
+        Rules: 
+        1. Return JSON ONLY.
+        2. Ignore any line numbering (e.g. "1.", "2.").
+        3. Ignore 6-8 digit numbers (Local processor handles them).
+        4. Special Format "[Name] Title": Extract 'Name' as 'person', 'Title' as 'work'.
+        5. "redgif搜xxx": Extract 'redgif' as platform, 'xxx' as query.
+        
+        Format: { "results": [ { "type": "person", "content": "Name", "sub_type": "Artist" } ] }
+        `;
+        
         const response = await fetch(`${base}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
@@ -315,13 +333,30 @@
         });
         const data = await response.json();
         const rawResults = JSON.parse(data.choices[0].message.content).results || [];
+        
         return rawResults.map(item => {
             let link = '';
+            // 简单清洗 content，去掉可能残留的 "3. "
+            item.content = item.content.replace(/^\d+[\.\s]/, '');
+            
             if (item.type === 'instruction') { item.type = 'work'; item.isInstruction = true; const p = item.platform?.toLowerCase() || ''; link = `https://www.google.com/search?q=site:${p}.com ${item.query}`; } 
             else if (item.type === 'work') link = `https://18comic.vip/search/photos?search_query=${item.content}`;
             else if (item.type === 'person') link = `https://www.pixiv.net/search/users?nick=${item.content}&s_mode=s_usr`;
+            
             return { type: item.type, content: item.content, subType: item.sub_type || (item.isInstruction ? 'CMD' : 'Unknown'), mainLink: link, isInstruction: !!item.isInstruction, original: item.content };
         });
+    }
+
+    function addItems(newItems, autoRender = true) {
+        let addedCount = 0;
+        newItems.reverse().forEach(item => {
+            // 强力去重：不仅检查内容，还检查是否已存在同样内容的“Code”
+            // 防止 AI 和 本地 同时提取同一个 ID 导致重复
+            const exists = GLOBAL_DATA.some(old => old.content === item.content);
+            if (!exists) { item.timestamp = Date.now(); GLOBAL_DATA.unshift(item); addedCount++; }
+        });
+        if (addedCount > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(GLOBAL_DATA));
+        return addedCount;
     }
 
     function loadConfig() { const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'); if(config.apiBase) document.getElementById('apiBase').value = config.apiBase; if(config.apiKey) document.getElementById('apiKey').value = config.apiKey; }
